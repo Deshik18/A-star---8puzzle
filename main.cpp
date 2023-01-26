@@ -315,8 +315,10 @@ void astar(string source,int htype){
 int main(){
     string input="";
     string str;
+    cout <<"Enter input string :";
     cin >> str;
     input+=str;
+    cout <<"Enter 1 or 2 or 3 or 4:";
     int htype;
     cin >> htype;
     if(htype==1){
