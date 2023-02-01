@@ -4,10 +4,13 @@
 using namespace std;
 using namespace std::chrono;
 
-string goal="123456780";
+bool costofempty=false;
+bool monotone = true;
+string goal;
 char c='0';
 map<string, int> visited;
 map<string, int> dist;
+int max_depth=0;
 
 
 struct track{
@@ -19,12 +22,12 @@ struct track node[1000000];
 int node_idx=0;
 
 
-int front =-1;
-int rear =-1;
+int front;
+int rear;
 string state[1000000];
 int key[1000000];
 void enqueue(string s,int k){
-    //cout << "enqueue:" << s << " " << k << endl;
+    cout << "enqueue:" << s << " " << k << endl;
     front++;
     state[front]=s;
     key[front]=k;
@@ -49,7 +52,6 @@ string extractmin(){
 }
 
 
-
 int heuristic(string s,int hind){
     if(hind==1){
         return 0;
@@ -58,8 +60,13 @@ int heuristic(string s,int hind){
         int m=0;
         for(int i=0;i<9;i++){
             if(s[i]!=goal[i]){
-                if(s[i]!=c){
+                if(costofempty){
                     m++;
+                }
+                else{
+                    if(s[i]!=c){
+                        m++;
+                    }
                 }   
             }
         }
@@ -82,10 +89,16 @@ int heuristic(string s,int hind){
                 for(int x=0;x<3;x++){
                     for(int y=0;y<3;y++){
                         if(alpha==goalarr[x][y]){
-                            if(alpha!=c){
-                                m+=abs(x-i)+abs(y-j);
+                            if(costofempty){
+                                 m+=abs(x-i)+abs(y-j);
                                 break;
                             }
+                            else{
+                                if(alpha!=c){
+                                    m+=abs(x-i)+abs(y-j);
+                                    break;
+                                }
+                            }    
                         }
                     }
                 }
@@ -167,25 +180,43 @@ int heuristic(string s,int hind){
 }
 
 
-void path(string source){
+int discovery(){
+    int i;
+    for(i=0;i<node_idx;i++){
+        if(node[i].pre==goal){
+            return i;
+        }
+    }
+}
+
+
+void path(string source,int htype){
     vector<char> record;
+    vector<string> nodegen;
     string present=goal;
+    cout << "--------------------------" << endl;
     while(present!=source){
         for(int i=0;i<node_idx;i++){
             if(present==node[i].pre){
                 record.push_back(node[i].move);
+                cout << "heuristic of fut :" << heuristic(present,htype) << "\t";
                 present = node[i].prev;
+                cout << "heuristic of pre :" << heuristic(present,htype) << endl;
                 break;
             }
         }
     }
+    cout << "--------------------------" << endl;
     for(int i=record.size()-1;i>=0;i--){
         cout << record[i] << " ->";
     }
+    cout << endl << endl;
     cout << "goal";
 }
 
 void astar(string source,int htype){
+    front=-1;
+    rear=-1;
     visited[source]=1;
     dist[source]=0;
     node[node_idx].prev="-1";
@@ -195,12 +226,16 @@ void astar(string source,int htype){
     enqueue(source,(dist[source]+(heuristic(source,htype))));
     while(front!=rear){
         string u=extractmin();
+        int s_heur=heuristic(u,htype);
         if(u==goal){
             cout << "Goal Found!!..." << endl;
-            cout << "Nodes Explored :" << node_idx-1 << endl;
-            cout << "Depth :" << dist[goal] << endl;
+            cout << "Nodes Explored :" << node_idx << endl;
+            cout << "Goal Node Discoved number :" << discovery()+1 << endl;
+            cout << "Depth of goal node:" << dist[goal] << endl;
+            cout << "Max Depth: " << max_depth << endl;
             cout << "Path :";
-            path(source);
+            path(source,htype);
+            cout << endl;
             return;
         }
         int brow,bcol;
@@ -236,6 +271,9 @@ void astar(string source,int htype){
                 node[node_idx].move='U';
                 node[node_idx].pre=nnode;
                 node_idx++;
+                if(heuristic(nnode,htype)>s_heur+1){
+                    monotone = false;
+                }
                 enqueue(nnode,(dist[nnode]+heuristic(nnode,htype)));
             }
             sarr[brow-1][bcol]=sarr[brow][bcol];
@@ -257,6 +295,9 @@ void astar(string source,int htype){
                 node[node_idx].move='D';
                 node[node_idx].pre=nnode;
                 node_idx++;
+                if(heuristic(nnode,htype)>s_heur+1){
+                    monotone = false;
+                }
                 enqueue(nnode,(dist[nnode]+heuristic(nnode,htype)));
             }
             sarr[brow+1][bcol]=sarr[brow][bcol];
@@ -278,6 +319,9 @@ void astar(string source,int htype){
                 node[node_idx].move='L';
                 node[node_idx].pre=nnode;
                 node_idx++;
+                if(heuristic(nnode,htype)>s_heur+1){
+                    monotone = false;
+                }
                 enqueue(nnode,(dist[nnode]+heuristic(nnode,htype)));
             }
             sarr[brow][bcol-1]=sarr[brow][bcol];
@@ -299,15 +343,22 @@ void astar(string source,int htype){
                 node[node_idx].move='R';
                 node[node_idx].pre=nnode;
                 node_idx++;
+                if(heuristic(nnode,htype)>s_heur+1){
+                    monotone = false;
+                }
                 enqueue(nnode,(dist[nnode]+heuristic(nnode,htype)));
             }
             sarr[brow][bcol+1]=sarr[brow][bcol];
             sarr[brow][bcol]=c;
         }
+        if(max_depth<dist[u]+1){
+            max_depth=dist[u]+1;
+        }
     }
     //cout << front << " " << rear;
     cout << "Goal not reachable...";
-    cout << "\nNo of explored node: " << node_idx;
+    cout << "\nNo of explored node: " << node_idx-1 << endl;
+    cout << "Depth reachrd out: " << max_depth << endl;
 }
 
 
@@ -318,27 +369,46 @@ int main(){
     cout <<"Enter input string :";
     cin >> str;
     input+=str;
-    cout <<"Enter 1 or 2 or 3 or 4:";
+    cout << "Enter goal string :";
+    cin >> goal;
+    int num;
+    cout << "If you want to consider empty tile for cost? Enter 1..";
+    cin >> num;
+    if(num==1){
+        costofempty = true;
+    }
+    cout <<"Enter 1(h1(n)=0) or \n2(h2(n)=no.of misplaced tiles) or \n3(h3(n)=manhattan distance) or \n4(h4(n)=nilsson's sequence score) :";
     int htype;
     cin >> htype;
     if(htype==1){
-        cout << "Heuristic h(n)=0"<<endl;
+        cout << "Heuristic used h(n)=0"<<endl;
     }
     if(htype==2){
-        cout << "Heuristic h(n)=no.of misplaced tiles"<<endl;
+        cout << "Heuristic used h(n)=no.of misplaced tiles"<<endl;
     }
     if(htype==3){
-        cout << "Heuristic h(n)=Manhattan distance"<<endl;
+        cout << "Heuristic used h(n)=Manhattan distance"<<endl;
     }
     if(htype==4){
-        cout << "Heuristic h(n)=Nilsson's sequence score"<<endl;
+        cout << "Heuristic used h(n)=Nilsson's sequence score"<<endl;
     }
     auto start = high_resolution_clock::now();
     astar(input,htype);
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
     float dure=duration.count();
-    cout << "\nTime taken by function: " << dure/1000 << "milliseconds" << endl;
+    if(dure>1000000){
+        cout << "\nTime taken by function: " << dure/1000000 << "seconds" << endl;
+    }
+    else{
+        cout << "\nTime taken by function: " << dure/1000 << "milliseconds" << endl;
+    }
+    if(monotone){
+        cout << "Monotone is maintained" << endl;
+    }
+    else{
+        cout << "Monotonicity couldn't be maintained" << endl;
+    }
  
     return 0;
 }
